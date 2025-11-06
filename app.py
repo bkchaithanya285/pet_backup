@@ -6,14 +6,25 @@ import smtplib
 import time
 import threading
 import pandas as pd
+import json
+import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # -------------------- FIREBASE INITIALIZATION --------------------
-# -------------------- FIREBASE INITIALIZATION --------------------
 try:
     if not firebase_admin._apps:
-        cred = credentials.Certificate("firebase_key.json")  # ✅ your JSON filename
+        # ✅ For Render (reads from environment variable)
+        if os.getenv("FIREBASE_CONFIG"):
+            firebase_config = json.loads(os.getenv("FIREBASE_CONFIG"))
+            with open("temp_firebase_key.json", "w") as f:
+                json.dump(firebase_config, f)
+            cred = credentials.Certificate("temp_firebase_key.json")
+
+        # ✅ For Local (reads from firebase_key.json file)
+        else:
+            cred = credentials.Certificate("firebase_key.json")
+
         firebase_admin.initialize_app(cred)
 
     db = firestore.client()
