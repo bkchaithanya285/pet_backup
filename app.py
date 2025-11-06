@@ -10,22 +10,26 @@ import json
 import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
+
+# -------------------- LOAD ENVIRONMENT VARIABLES --------------------
+load_dotenv()  # Reads values from .env file
 
 # -------------------- FIREBASE INITIALIZATION --------------------
 try:
     if not firebase_admin._apps:
-        # ✅ For Render (reads from environment variable)
-        if os.getenv("FIREBASE_CONFIG"):
-            firebase_config = json.loads(os.getenv("FIREBASE_CONFIG"))
+        FIREBASE_ENV = os.getenv("FIREBASE_CONFIG")
+        if FIREBASE_ENV:
+            firebase_config = json.loads(FIREBASE_ENV)
+            # Write temporary key for firebase
             with open("temp_firebase_key.json", "w") as f:
                 json.dump(firebase_config, f)
             cred = credentials.Certificate("temp_firebase_key.json")
-
-        # ✅ For Local (reads from firebase_key.json file)
+            firebase_admin.initialize_app(cred)
+            st.info("🔥 Using Firebase config from .env file")
         else:
-            cred = credentials.Certificate("firebase_key.json")
-
-        firebase_admin.initialize_app(cred)
+            st.error("❌ FIREBASE_CONFIG not found in .env file!")
+            st.stop()
 
     db = firestore.client()
     st.success("✅ Firebase connected successfully!")
@@ -36,7 +40,7 @@ except Exception as e:
 # -------------------- EMAIL FUNCTION --------------------
 def send_email(to_email, subject, message):
     sender_email = "petremainder@gmail.com"
-    sender_password = "gqguiecwiapumctq"  # Gmail App Password (no spaces)
+    sender_password = "gqguiecwiapumctq"  # Gmail App Password
 
     try:
         msg = MIMEMultipart()
@@ -124,11 +128,9 @@ if records:
     df = pd.DataFrame(records).drop(columns=["id"])
     st.dataframe(df, use_container_width=True)
 
-    # Download as CSV
     csv = df.to_csv(index=False).encode("utf-8")
     st.download_button("⬇ Download Table as CSV", data=csv, file_name="pet_reminders.csv", mime="text/csv")
 
-    # Delete buttons beside each record
     st.subheader("🗑 Delete Individual Reminder")
     for idx, rec in enumerate(records, start=1):
         col1, col2, col3, col4 = st.columns([3, 3, 3, 1])
